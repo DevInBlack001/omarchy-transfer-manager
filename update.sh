@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Pulls the latest source (if this is a git checkout) and re-applies
-# install.sh so generated files and the running daemon pick up the change.
+# Re-applies install.sh against whatever is currently checked out here, and
+# restarts the daemon so it picks up any code change.
 #
-# If this plugin was added via `omarchy plugin add`, `omarchy plugin update
-# <id>` already fast-forwards this same checkout for you; run this script
-# (or at least `systemctl --user restart filetransferd.service`) afterward
-# so the daemon actually reloads the new code, since a running process
-# doesn't pick up file changes on its own.
+# Deliberately does NOT fetch new source itself. Fetching and applying are
+# kept as two separate, explicit steps: for a marketplace install, run
+# `omarchy plugin update filetransfer` first (that's what advances this
+# checkout); for a manual clone, run `git pull` yourself first. Either way,
+# by the time this script runs, whatever is on disk is exactly what you
+# already chose to have here, not something this script went and fetched
+# on its own right before executing it.
 set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/installer-common.sh"
 
@@ -18,19 +20,12 @@ for arg in "$@"; do
 done
 
 if [ -d "$REPO_DIR/.git" ]; then
-  if [ -n "$(git -C "$REPO_DIR" status --porcelain)" ]; then
-    echo "update: $REPO_DIR has uncommitted changes, not pulling to avoid clobbering them." >&2
-    echo "Commit or stash them, then re-run this, or update manually." >&2
-    exit 1
-  fi
-  echo "Pulling latest changes into $REPO_DIR..."
-  git -C "$REPO_DIR" pull --ff-only
+  echo "Applying install steps for $(git -C "$REPO_DIR" rev-parse --short HEAD) at $REPO_DIR..."
 else
-  echo "note: $REPO_DIR is not a git checkout; update the source yourself, then re-run this." >&2
+  echo "Applying install steps for $REPO_DIR..."
 fi
 
-echo "Re-applying install steps..."
-"$REPO_DIR/install.sh"
+"$REPO_DIR/install.sh" "${INSTALL_ARGS[@]}"
 
 systemctl --user restart filetransferd.service
-echo "filetransferd restarted on the updated code."
+echo "filetransferd restarted on the current checkout."

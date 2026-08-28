@@ -148,9 +148,16 @@ other Omarchy configuration; enabling the bar widget is a separate step you
 do yourself.
 
 ```sh
-./update.sh       # git pull (if clean), re-run install.sh, restart the daemon
-./uninstall.sh    # stop the daemon, remove only what install.sh created
+git pull --ff-only  # fetch the new source yourself first
+./update.sh         # re-run install.sh against it, restart the daemon
+./uninstall.sh      # stop the daemon, remove only what install.sh created
 ```
+
+`update.sh` deliberately doesn't fetch anything itself: it only re-applies
+`install.sh` against whatever is already checked out and restarts the
+daemon. Fetching and applying are kept as two separate steps you each
+choose explicitly, rather than one script silently pulling a moving
+branch and immediately executing whatever it finds.
 
 Both accept `--yes`/`-y` to skip confirmation prompts for scripted use; by
 default (and always when not run from a real terminal) they ask before
