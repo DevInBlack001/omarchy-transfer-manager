@@ -17,6 +17,12 @@ manager or desktop shell. A Quickshell panel (built for
 and control the queue, but the daemon itself doesn't need it running to keep
 transferring files.
 
+## Screenshots
+
+| Idle | In progress | Failed |
+|---|---|---|
+| ![Idle state](screenshots/idle.png) | ![Transfer in progress](screenshots/in-progress.png) | ![Transfer failed](screenshots/failed.png) |
+
 ## What's here
 
 | Piece | Purpose |
@@ -35,9 +41,9 @@ color follows your active Omarchy theme rather than a fixed color:
 
 - **Idle** (default): the theme's muted color.
 - **In progress**: the theme's accent color, with a live percentage badge.
-- **Failed**: the theme's urgent/error color — and this takes priority over
-  "in progress" even if something else is currently running, since a
-  failure is what needs your attention.
+- **Failed**: the theme's urgent/error color, taking priority over "in
+  progress" even if something else is currently running, since a failure
+  is what needs your attention.
 
 Hovering it shows a tooltip ("No ongoing transfer", how many transfers are
 active, or "A transfer failed"); clicking it opens the queue, which shows
@@ -75,8 +81,8 @@ omarchy plugin add https://github.com/DevInBlack001/omarchy-transfer-manager.git
 ```
 
 This clones the repo straight into `~/.config/omarchy/plugins/filetransfer`
-and registers the bar widget — it's the Quickshell panel's normal install
-path. It does **not** set up the daemon, `ftctl`, or the file-manager
+and registers the bar widget, which is the Quickshell panel's normal
+install path. It does **not** set up the daemon, `ftctl`, or the file-manager
 integration on its own (those aren't things the plugin loader knows how to
 run), so also run the bundled installer once, from wherever it landed:
 
@@ -84,8 +90,8 @@ run), so also run the bundled installer once, from wherever it landed:
 ~/.config/omarchy/plugins/filetransfer/install.sh
 ```
 
-Until that's run, the panel will show "Daemon unreachable" — it has nothing
-to talk to yet.
+Until that's run, the panel will show "Daemon unreachable", since it has
+nothing to talk to yet.
 
 **Updating** a marketplace install:
 
@@ -112,7 +118,7 @@ omarchy plugin remove filetransfer
 ```
 
 Run the uninstaller first (it stops the daemon and removes `ftctl`, the
-systemd unit, and the Nautilus scripts) — `omarchy plugin remove` only
+systemd unit, and the Nautilus scripts). `omarchy plugin remove` only
 knows about the plugin folder itself, not the daemon-side pieces alongside
 it.
 
@@ -131,12 +137,12 @@ omarchy plugin enable filetransfer
 ```
 
 `install.sh` is safe to re-run (e.g. after `git pull`, or if you move the
-repo) — that's what `update.sh` uses it for. **It never overwrites a file
+repo); that's what `update.sh` uses it for. **It never overwrites a file
 it didn't create itself**: every file it writes (`~/.local/bin/ftctl`,
 `~/.config/systemd/user/filetransferd.service`, the Nautilus scripts, the
 `~/.config/omarchy/plugins/filetransfer` link) is tagged with a marker
 comment, and if something else is already at that path, it asks before
-replacing it — or skips it automatically, unwritten, if run
+replacing it, or skips it automatically, unwritten, if run
 non-interactively. It never touches `~/.config/omarchy/shell.json` or any
 other Omarchy configuration; enabling the bar widget is a separate step you
 do yourself.
