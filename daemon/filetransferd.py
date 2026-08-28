@@ -22,6 +22,7 @@ import logging
 import os
 import re
 import signal
+import stat
 import sys
 import tempfile
 import time
@@ -142,14 +143,25 @@ class TransferDaemon:
 
     def _load(self):
         path = common.queue_file()
-        if not os.path.exists(path):
+        if not os.path.lexists(path):
             return
+        fd = None
         try:
-            with open(path, "rb") as fh:
-                # Bounded read: queue.json is ours, but it's still a file on
-                # disk, and json.load() on an unbounded stream will happily
-                # try to buffer however much is there. Read one byte past
-                # the cap so an oversized file is detected and rejected
+            # O_NOFOLLOW plus an explicit regular-file check: this path is
+            # normally ours (we wrote it via mkstemp + rename), but another
+            # process running as this same user could still have replaced it
+            # with a symlink before this open. Refuse to follow it rather
+            # than read whatever it points at.
+            fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+            st = os.fstat(fd)
+            if not stat.S_ISREG(st.st_mode):
+                self.log.warning("queue state path is not a regular file, refusing to load")
+                return
+            with os.fdopen(fd, "rb") as fh:
+                fd = None  # fdopen owns the descriptor now
+                # Bounded read: json.load() on an unbounded stream will
+                # happily try to buffer however much is there. Read one byte
+                # past the cap so an oversized file is detected and rejected
                 # rather than truncated into invalid JSON and misread.
                 raw_bytes = fh.read(common.MAX_QUEUE_STATE_BYTES + 1)
             if len(raw_bytes) > common.MAX_QUEUE_STATE_BYTES:
@@ -160,6 +172,9 @@ class TransferDaemon:
         except (OSError, ValueError) as exc:
             self.log.warning("could not read queue state: %s", exc)
             return
+        finally:
+            if fd is not None:
+                os.close(fd)
         if not isinstance(raw, dict) or not isinstance(raw.get("jobs"), list):
             self.log.warning("queue state file has an unexpected shape, ignoring it")
             return
@@ -567,7 +582,10 @@ class TransferDaemon:
 async def handle_client(daemon, reader, writer):
     sock = writer.get_extra_info("socket")
     uid = common.peer_uid(sock) if sock is not None else None
-    if uid is not None and uid != os.getuid():
+    # Fail closed: if the credential can't be established at all (missing
+    # socket, SO_PEERCRED unsupported or denied), that's not "no evidence of
+    # a mismatch", it's "no evidence of a match" -- reject rather than accept.
+    if uid is None or uid != os.getuid():
         writer.close()
         return
     try:
