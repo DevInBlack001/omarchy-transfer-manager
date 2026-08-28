@@ -64,6 +64,7 @@ Panel {
           visible: root.overallPercent >= 0 && !root.hasError
           anchors.right: parent.right
           anchors.bottom: parent.bottom
+          textFormat: Text.PlainText
           text: root.overallPercent + "%"
           color: root.stateColor
           font.family: root.fontFamily
@@ -136,6 +137,7 @@ Panel {
           Text {
             visible: !transfer.lastOk
             width: parent.width
+            textFormat: Text.PlainText
             text: transfer.lastError || "Could not reach the transfer daemon."
             color: root.urgent
             font.family: root.fontFamily
@@ -151,6 +153,7 @@ Panel {
           Text {
             visible: transfer.lastOk && transfer.jobs.length === 0
             width: parent.width
+            textFormat: Text.PlainText
             text: "No transfers yet."
             color: root.dim
             font.family: root.fontFamily
@@ -174,6 +177,7 @@ Panel {
 
           Text {
             visible: transfer.hasFinished
+            textFormat: Text.PlainText
             text: "Clear finished"
             color: root.dim
             font.family: root.fontFamily
@@ -211,6 +215,7 @@ Panel {
 
         Text {
           Layout.fillWidth: true
+          textFormat: Text.PlainText
           text: Model.jobTitle(jobRow.job) + " → " + Model.jobDestName(jobRow.job)
           color: root.foreground
           font.family: root.fontFamily
@@ -220,6 +225,7 @@ Panel {
 
         Text {
           Layout.fillWidth: true
+          textFormat: Text.PlainText
           text: Model.statusLabel(jobRow.job)
             + (jobRow.isRunning ? ("  " + Model.formatRate(jobRow.job.speedBps) + "  ETA " + Model.formatEta(jobRow.job.etaSec)) : "")
             + (jobRow.job && jobRow.job.state === "error" && jobRow.job.error ? ("  " + jobRow.job.error) : "")
