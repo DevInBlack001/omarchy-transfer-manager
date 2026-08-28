@@ -76,6 +76,13 @@ function hasFinished(jobs) {
   return false
 }
 
+function hasError(jobs) {
+  for (var i = 0; i < jobs.length; i++) {
+    if (jobs[i].state === "error") return true
+  }
+  return false
+}
+
 function firstByState(jobs, state) {
   for (var i = 0; i < jobs.length; i++) {
     if (jobs[i].state === state) return jobs[i]

@@ -30,11 +30,19 @@ transferring files.
 
 ## The bar icon
 
-The icon is always shown, whether or not anything is transferring: dimmed
-when idle, full brightness with a live percentage badge while something is
-running. Hovering it shows a tooltip ("No ongoing transfer" when idle, or
-how many transfers are active); clicking it opens the queue, which says
-"Nothing queued" when there's nothing to show.
+The icon is always shown, whether or not anything is transferring, and its
+color follows your active Omarchy theme rather than a fixed color:
+
+- **Idle** (default): the theme's muted color.
+- **In progress**: the theme's accent color, with a live percentage badge.
+- **Failed**: the theme's urgent/error color — and this takes priority over
+  "in progress" even if something else is currently running, since a
+  failure is what needs your attention.
+
+Hovering it shows a tooltip ("No ongoing transfer", how many transfers are
+active, or "A transfer failed"); clicking it opens the queue, which shows
+the same state in its header ("Nothing queued", "N active", or "A transfer
+failed") and per job in the list.
 
 ## How the queue behaves
 

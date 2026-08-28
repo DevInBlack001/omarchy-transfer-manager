@@ -20,7 +20,20 @@ Panel {
   readonly property var runningJob: Model.firstByState(transfer.jobs, "running")
   readonly property int overallPercent: root.runningJob ? Model.percentFor(root.runningJob) : -1
   readonly property bool hasActivity: transfer.activeCount > 0
-  readonly property color barIconColor: (transfer.lastOk && hasActivity) ? barForeground : Qt.darker(barForeground, 1.55)
+  readonly property bool hasError: Model.hasError(transfer.jobs)
+
+  // Three states, using the active theme's own palette rather than fixed
+  // colors, so this tracks whatever theme the user has set: muted while
+  // idle, the theme's accent while something is transferring, and the
+  // theme's urgent/error color as soon as anything has failed -- that last
+  // one takes priority even if something else is running, since a failure
+  // is the thing that needs attention.
+  readonly property color stateColor: {
+    if (!transfer.lastOk) return Color.muted
+    if (hasError) return Color.urgent
+    if (hasActivity) return Color.accent
+    return Color.muted
+  }
 
   Service {
     id: transfer
@@ -36,22 +49,23 @@ Panel {
     id: button
     anchors.fill: parent
     bar: root.bar
-    tooltipText: root.hasActivity ? (transfer.activeCount + " active transfer" + (transfer.activeCount === 1 ? "" : "s")) : "No ongoing transfer"
+    tooltipText: root.hasError
+      ? "A transfer failed"
+      : (root.hasActivity ? (transfer.activeCount + " active transfer" + (transfer.activeCount === 1 ? "" : "s")) : "No ongoing transfer")
     iconComponent: Component {
       Item {
         TransferIcon {
           anchors.centerIn: parent
           iconSize: Style.space(12)
-          color: root.barIconColor
-          opacity: root.hasActivity ? 1.0 : 0.55
+          color: root.stateColor
         }
 
         Text {
-          visible: root.overallPercent >= 0
+          visible: root.overallPercent >= 0 && !root.hasError
           anchors.right: parent.right
           anchors.bottom: parent.bottom
           text: root.overallPercent + "%"
-          color: root.barIconColor
+          color: root.stateColor
           font.family: root.fontFamily
           font.pixelSize: Style.font.caption
           font.bold: true
@@ -103,15 +117,18 @@ Panel {
           PanelHero {
             width: parent.width
             title: "Transfer Manager"
-            meta: transfer.lastOk
-              ? (transfer.activeCount > 0 ? (transfer.activeCount + " active") : "Nothing queued")
-              : "Daemon unreachable"
+            meta: {
+              if (!transfer.lastOk) return "Daemon unreachable"
+              if (root.hasError) return "A transfer failed"
+              if (transfer.activeCount > 0) return transfer.activeCount + " active"
+              return "Nothing queued"
+            }
             foreground: root.foreground
             fontFamily: root.fontFamily
             iconComponent: Component {
               TransferIcon {
                 iconSize: Style.font.display
-                color: root.foreground
+                color: root.stateColor
               }
             }
           }
@@ -254,7 +271,7 @@ Panel {
         width: jobRow.pct >= 0 ? parent.width * (jobRow.pct / 100.0) : parent.width * 0.15
         height: parent.height
         radius: height / 2
-        color: jobRow.isPaused ? root.dim : root.foreground
+        color: jobRow.isPaused ? root.dim : Color.accent
       }
     }
   }
