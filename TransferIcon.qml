@@ -5,9 +5,9 @@ import qs.Commons
 // Bar icon drawn as vector shapes rather than a font glyph. The bar's icon
 // font is a symbol font with a fixed codepoint set (see DropboxIcon.qml,
 // TailscaleIcon.qml for the same pattern); a plain Unicode character like
-// an arrow glyph has no guarantee of existing in it and can render as
-// nothing at all. Two opposing arrows, drawn with strokes so they read
-// clearly at bar-icon sizes.
+// an arrow glyph has no guarantee of existing in it. Two filled arrow
+// polygons (not strokes), the same filled-ShapePath technique DropboxIcon
+// uses, since that's the one proven to render correctly in this shell.
 Item {
   id: root
 
@@ -19,8 +19,6 @@ Item {
   width: iconSize
   height: iconSize
 
-  readonly property real strokeW: Math.max(1.4, iconSize * 0.11)
-
   Shape {
     anchors.fill: parent
     antialiasing: true
@@ -29,44 +27,28 @@ Item {
 
     // Top arrow, pointing right.
     ShapePath {
-      fillColor: "transparent"
-      strokeColor: root.color
-      strokeWidth: root.strokeW
-      capStyle: ShapePath.RoundCap
-      joinStyle: ShapePath.RoundJoin
-      startX: root.width * 0.16; startY: root.height * 0.36
-      PathLine { x: root.width * 0.84; y: root.height * 0.36 }
-    }
-    ShapePath {
-      fillColor: "transparent"
-      strokeColor: root.color
-      strokeWidth: root.strokeW
-      capStyle: ShapePath.RoundCap
-      joinStyle: ShapePath.RoundJoin
-      startX: root.width * 0.62; startY: root.height * 0.16
+      fillColor: root.color
+      strokeWidth: 0
+      startX: root.width * 0.14; startY: root.height * 0.30
+      PathLine { x: root.width * 0.58; y: root.height * 0.30 }
+      PathLine { x: root.width * 0.58; y: root.height * 0.18 }
       PathLine { x: root.width * 0.86; y: root.height * 0.36 }
-      PathLine { x: root.width * 0.62; y: root.height * 0.56 }
+      PathLine { x: root.width * 0.58; y: root.height * 0.54 }
+      PathLine { x: root.width * 0.58; y: root.height * 0.42 }
+      PathLine { x: root.width * 0.14; y: root.height * 0.42 }
     }
 
     // Bottom arrow, pointing left.
     ShapePath {
-      fillColor: "transparent"
-      strokeColor: root.color
-      strokeWidth: root.strokeW
-      capStyle: ShapePath.RoundCap
-      joinStyle: ShapePath.RoundJoin
-      startX: root.width * 0.84; startY: root.height * 0.64
-      PathLine { x: root.width * 0.16; y: root.height * 0.64 }
-    }
-    ShapePath {
-      fillColor: "transparent"
-      strokeColor: root.color
-      strokeWidth: root.strokeW
-      capStyle: ShapePath.RoundCap
-      joinStyle: ShapePath.RoundJoin
-      startX: root.width * 0.38; startY: root.height * 0.84
+      fillColor: root.color
+      strokeWidth: 0
+      startX: root.width * 0.86; startY: root.height * 0.58
+      PathLine { x: root.width * 0.42; y: root.height * 0.58 }
+      PathLine { x: root.width * 0.42; y: root.height * 0.46 }
       PathLine { x: root.width * 0.14; y: root.height * 0.64 }
-      PathLine { x: root.width * 0.38; y: root.height * 0.44 }
+      PathLine { x: root.width * 0.42; y: root.height * 0.82 }
+      PathLine { x: root.width * 0.42; y: root.height * 0.70 }
+      PathLine { x: root.width * 0.86; y: root.height * 0.70 }
     }
   }
 }

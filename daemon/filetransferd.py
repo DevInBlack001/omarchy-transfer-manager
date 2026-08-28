@@ -23,6 +23,7 @@ import os
 import re
 import signal
 import sys
+import tempfile
 import time
 import uuid
 
@@ -86,12 +87,34 @@ class Job:
 
     @classmethod
     def from_dict(cls, d):
+        # queue.json is trusted-ish (this daemon wrote it), but it's still a
+        # file on disk that could be hand-edited, truncated, or corrupted;
+        # checking shapes here means a bad entry is skipped by the caller
+        # instead of producing a job with the wrong types deep in the queue.
+        if not isinstance(d, dict):
+            raise TypeError("job entry is not an object")
+        job_id = d["id"]
+        mode = d["mode"]
+        sources = d["sources"]
+        dest = d["dest"]
+        state = d["state"]
+        if not isinstance(job_id, str) or not job_id:
+            raise TypeError("job id must be a non-empty string")
+        if mode not in ("copy", "move"):
+            raise TypeError("job mode must be 'copy' or 'move'")
+        if not isinstance(sources, list) or not all(isinstance(s, str) for s in sources):
+            raise TypeError("job sources must be a list of strings")
+        if not isinstance(dest, str):
+            raise TypeError("job dest must be a string")
+        if state not in ("queued", "running", "paused", "done", "error", "cancelled"):
+            raise TypeError("job state is not recognized")
+
         job = cls.__new__(cls)
-        job.id = d["id"]
-        job.mode = d["mode"]
-        job.sources = d["sources"]
-        job.dest = d["dest"]
-        job.state = d["state"]
+        job.id = job_id
+        job.mode = mode
+        job.sources = sources
+        job.dest = dest
+        job.state = state
         job.bytes_done = d.get("bytesDone", 0)
         job.bytes_total = d.get("bytesTotal", -1)
         job.speed_bps = d.get("speedBps", 0.0)
@@ -122,10 +145,23 @@ class TransferDaemon:
         if not os.path.exists(path):
             return
         try:
-            with open(path, "r", encoding="utf-8") as fh:
-                raw = json.load(fh)
+            with open(path, "rb") as fh:
+                # Bounded read: queue.json is ours, but it's still a file on
+                # disk, and json.load() on an unbounded stream will happily
+                # try to buffer however much is there. Read one byte past
+                # the cap so an oversized file is detected and rejected
+                # rather than truncated into invalid JSON and misread.
+                raw_bytes = fh.read(common.MAX_QUEUE_STATE_BYTES + 1)
+            if len(raw_bytes) > common.MAX_QUEUE_STATE_BYTES:
+                self.log.warning("queue state file exceeds %d bytes, refusing to load",
+                                  common.MAX_QUEUE_STATE_BYTES)
+                return
+            raw = json.loads(raw_bytes.decode("utf-8"))
         except (OSError, ValueError) as exc:
             self.log.warning("could not read queue state: %s", exc)
+            return
+        if not isinstance(raw, dict) or not isinstance(raw.get("jobs"), list):
+            self.log.warning("queue state file has an unexpected shape, ignoring it")
             return
         for entry in raw.get("jobs", []):
             try:
@@ -145,16 +181,28 @@ class TransferDaemon:
 
     def _write_snapshot(self, data):
         path = common.queue_file()
-        tmp = path + ".tmp"
+        directory = os.path.dirname(path)
+        tmp = None
         try:
-            fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            # A fixed "path.tmp" name is predictable: another process in
+            # this account could pre-create it as a symlink, and O_CREAT
+            # without O_EXCL would follow that symlink and truncate
+            # whatever it points at. mkstemp() picks an unpredictable name
+            # and opens it O_EXCL itself, closing that window; it also
+            # creates the file 0600, so no separate chmod is needed.
+            fd, tmp = tempfile.mkstemp(prefix=".queue.", suffix=".tmp", dir=directory)
             with os.fdopen(fd, "w", encoding="utf-8") as fh:
                 json.dump(data, fh)
                 fh.flush()
                 os.fsync(fh.fileno())
             os.replace(tmp, path)
+            tmp = None
         except OSError as exc:
             self.log.warning("could not persist queue state: %s", exc)
+        finally:
+            if tmp is not None:
+                with contextlib.suppress(OSError):
+                    os.unlink(tmp)
 
     def _snapshot(self):
         # Build the plain-dict snapshot on the event loop thread, before

@@ -50,7 +50,11 @@ if [ "$(readlink -f "$PLUGIN_LINK" 2>/dev/null)" = "$(readlink -f "$REPO_DIR")" 
   : # already in place, either as our own symlink or as the repo itself
 elif [ -e "$PLUGIN_LINK" ] || [ -L "$PLUGIN_LINK" ]; then
   if confirm "$PLUGIN_LINK already exists. Replace it with a link to this plugin?"; then
-    rm -rf "$PLUGIN_LINK"
+    if [ -L "$PLUGIN_LINK" ]; then
+      rm -f "$PLUGIN_LINK"
+    else
+      rm -rf "$PLUGIN_LINK"
+    fi
     ln -s "$REPO_DIR" "$PLUGIN_LINK"
   else
     echo "skip: leaving $PLUGIN_LINK untouched" >&2

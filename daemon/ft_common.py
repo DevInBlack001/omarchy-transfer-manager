@@ -12,6 +12,12 @@ SOCK_NAME = "ctl.sock"
 MAX_LINE_BYTES = 2 * 1024 * 1024
 MAX_SOURCES = 10000
 MAX_QUEUED_JOBS = 500
+# Bounds the persisted queue.json read at startup. Generous relative to
+# realistic use (a handful of sources per job, well under MAX_QUEUED_JOBS
+# jobs at once) so it never rejects a legitimate queue, but still refuses
+# to hand json.load() an unbounded file if queue.json were ever corrupted,
+# replaced, or otherwise not what this daemon wrote.
+MAX_QUEUE_STATE_BYTES = 64 * 1024 * 1024
 
 
 def runtime_dir():
