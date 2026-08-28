@@ -1,0 +1,15 @@
+[Unit]
+Description=File transfer queue daemon (independent of any file manager)
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 __EXEC_PATH__
+Restart=on-failure
+RestartSec=2
+Environment=PYTHONUNBUFFERED=1
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target
