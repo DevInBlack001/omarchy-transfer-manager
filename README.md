@@ -63,7 +63,7 @@ how many transfers are active); clicking it opens the queue, which says
 ## Install from the Omarchy plugin marketplace
 
 ```
-omarchy plugin add https://github.com/<owner>/<repo>.git --enable
+omarchy plugin add https://github.com/DevInBlack001/omarchy-transfer-manager.git --enable
 ```
 
 This clones the repo straight into `~/.config/omarchy/plugins/filetransfer`
@@ -111,8 +111,8 @@ it.
 ## Install from a manual git clone
 
 ```sh
-git clone https://github.com/<owner>/<repo>.git
-cd <repo>
+git clone https://github.com/DevInBlack001/omarchy-transfer-manager.git
+cd omarchy-transfer-manager
 ./install.sh
 ```
 
